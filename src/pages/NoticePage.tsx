@@ -27,13 +27,25 @@ export default function NoticePage() {
   const [rdate, setRdate] = useState<string>('');
 
 
+  // 1. 공지사항 목록 조회 및 페이지네이션
   const fetchNotices = async (targetPage: number) => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`http://info7qni.dothome.co.kr/board.php?page=${targetPage}`);
-      if (response.data && response.data.success) {
-        setNotices(response.data.data);
-        setTotalPages(response.data.total_pages);
+      const response = await axios.get(`https://info7qni.dothome.co.kr/board.php?page=${targetPage}`);
+      
+      // [서버 데이터 정제]
+      let responseData = response.data;
+      if (typeof responseData === 'string') {
+        const jsonStartIndex = responseData.indexOf('{');
+        if (jsonStartIndex !== -1) {
+          responseData = JSON.parse(responseData.substring(jsonStartIndex));
+        }
+      }
+
+      // [성공 여부 검증]
+      if (responseData && (responseData.success === true || responseData.success === "true")) {
+        setNotices(responseData.data || []);
+        setTotalPages(responseData.total_pages || 1);
       }
     } catch (error) {
       console.error("공지 목록 갱신 실패:", error);
@@ -42,21 +54,33 @@ export default function NoticePage() {
     }
   };
 
-
- const fetchModifyNotices = async (id: number) => {
+  // 2. 수정 폼을 열기 위한 단건 데이터 조회 (Modal 1)
+  const fetchModifyNotices = async (id: number) => {
     setIsLoading(true);
-
     try {
-      const response = await axios.post('http://info7qni.dothome.co.kr/modify_noticelist.php', {
+      const response = await axios.post('https://info7qni.dothome.co.kr/modify_noticelist.php', {
         id: id
       });
-      if (response.data && response.data.success) {
-        const item = response.data.data;
-        setTitle(item.title || '');
-        setContent(item.content || '');
-        setType(item.type === 'Y');
-        setEditingId(id);  
-        setIsOpen(true);
+      
+      // [서버 데이터 정제]
+      let responseData = response.data;
+      if (typeof responseData === 'string') {
+        const jsonStartIndex = responseData.indexOf('{');
+        if (jsonStartIndex !== -1) {
+          responseData = JSON.parse(responseData.substring(jsonStartIndex));
+        }
+      }
+
+      // [성공 여부 검증]
+      if (responseData && (responseData.success === true || responseData.success === "true")) {
+        const item = responseData.data;
+        if (item) {
+          setTitle(item.title || '');
+          setContent(item.content || '');
+          setType(item.type === 'Y');
+          setEditingId(id);  
+          setIsOpen(true);
+        }
       }
     } catch (error) {
       console.error("공지 목록 갱신 실패:", error);
@@ -65,22 +89,34 @@ export default function NoticePage() {
     }
   };
 
-
-   const fetchModifyNoticesDetail = async (id: number) => {
+  // 3. 상세 보기 폼을 열기 위한 단건 데이터 조회 (Modal 2)
+  const fetchModifyNoticesDetail = async (id: number) => {
     setIsLoading(true);
-
     try {
-      const response = await axios.post('http://info7qni.dothome.co.kr/modify_noticelist.php', {
+      const response = await axios.post('https://info7qni.dothome.co.kr/modify_noticelist.php', {
         id: id
       });
-      if (response.data && response.data.success) {
-        const item = response.data.data;
-        setTitle(item.title || '');
-        setContent(item.content || '');
-        setRdate(item.rdate || ''); 
-        setType(item.type === 'Y');
-        setEditingId(id);  
-        setIsOpen2(true);
+      
+      // [서버 데이터 정제]
+      let responseData = response.data;
+      if (typeof responseData === 'string') {
+        const jsonStartIndex = responseData.indexOf('{');
+        if (jsonStartIndex !== -1) {
+          responseData = JSON.parse(responseData.substring(jsonStartIndex));
+        }
+      }
+
+      // [성공 여부 검증]
+      if (responseData && (responseData.success === true || responseData.success === "true")) {
+        const item = responseData.data;
+        if (item) {
+          setTitle(item.title || '');
+          setContent(item.content || '');
+          setRdate(item.rdate || ''); 
+          setType(item.type === 'Y');
+          setEditingId(id);  
+          setIsOpen2(true);
+        }
       }
     } catch (error) {
       console.error("공지 목록 갱신 실패:", error);
@@ -89,50 +125,57 @@ export default function NoticePage() {
     }
   };
 
-
-
-
+  // 4. 상태 감지용 이펙트
   useEffect(() => {
     fetchNotices(currentPage);
   }, [currentPage]);
 
-
-
+  // 5. 공지사항 작성 및 수정 제출 (Submit)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim() || !content.trim()) {
-      alert('제목과 내용을 모두 입력해 주세요.');      return;
+      alert('제목과 내용을 모두 입력해 주세요.');      
+      return;
     }
 
     const actionUrl = editingId === null 
-      ? 'http://info7qni.dothome.co.kr/insert_notice.php'  // Create URL
-      : 'http://info7qni.dothome.co.kr/update_notice.php';  // Edit URL
-
+      ? 'https://info7qni.dothome.co.kr/insert_notice.php'  // Create URL
+      : 'https://info7qni.dothome.co.kr/update_notice.php';  // Edit URL
 
     try {
       const response = await axios.post(actionUrl, {
         title: title,
         content: content,
         type: type ? 'Y' : 'N',
-        id:editingId
+        id: editingId
       });
 
-      if (response.data && response.data.success) {
+      // [서버 데이터 정제]
+      let responseData = response.data;
+      if (typeof responseData === 'string') {
+        const jsonStartIndex = responseData.indexOf('{');
+        if (jsonStartIndex !== -1) {
+          responseData = JSON.parse(responseData.substring(jsonStartIndex));
+        }
+      }
+
+      // [성공 여부 검증]
+      if (responseData && (responseData.success === true || responseData.success === "true")) {
         alert(editingId === null ? '등록되었습니다!' : '수정되었습니다!');
         
-  
         setTitle('');
         setContent('');
         setType(false);
         setIsOpen(false); 
-
 
         if (currentPage === 1) {
           fetchNotices(1); 
         } else {
           setCurrentPage(1); 
         }
+      } else {
+        alert(responseData?.message || '처리에 실패했습니다.');
       }
     } catch (error) {
       console.error("공지 등록 실패:", error);
@@ -140,47 +183,51 @@ export default function NoticePage() {
     }
   };
 
+  // 6. 클릭 이벤트 핸들러들
   const handleOpenNoticeForm = (id: number) => {
-
     fetchModifyNotices(id);
-
   };
 
-
-    const onShowDetail = (id: number) => {
-
+  const onShowDetail = (id: number) => {
     fetchModifyNoticesDetail(id);
-
   };
 
-
-
-    const handleDeleteNotice = async (id: number) => {
+  // 7. 공지사항 삭제 처리
+  const handleDeleteNotice = async (id: number) => {
     if (window.confirm("이 공지사항을 정말로 삭제하시겠습니까?")) {
-        try {
-
-        const response = await axios.post('http://info7qni.dothome.co.kr/deleteNotice.php', {
-            id: id,
+      try {
+        const response = await axios.post('https://info7qni.dothome.co.kr/deleteNotice.php', {
+          id: id,
         });
 
-
-        if (response.data && response.data.success) {
-            alert('공지사항이 성공적으로 삭제되었습니다!');
-
-            if (currentPage === 1) {
-            fetchNotices(1); 
-            } else {
-            setCurrentPage(1); 
-            }
-        } else {
-            alert(response.data.message || '삭제 처리에 실패했습니다.');
+        // [서버 데이터 정제]
+        let responseData = response.data;
+        if (typeof responseData === 'string') {
+          const jsonStartIndex = responseData.indexOf('{');
+          if (jsonStartIndex !== -1) {
+            responseData = JSON.parse(responseData.substring(jsonStartIndex));
+          }
         }
-        } catch (error) {
+
+        // [성공 여부 검증]
+        if (responseData && (responseData.success === true || responseData.success === "true")) {
+          alert('공지사항이 성공적으로 삭제되었습니다!');
+
+          if (currentPage === 1) {
+            fetchNotices(1); 
+          } else {
+            setCurrentPage(1); 
+          }
+        } else {
+          alert(responseData?.message || '삭제 처리에 실패했습니다.');
+        }
+      } catch (error) {
         console.error("공지 삭제 실패:", error);
         alert('서버 전송 중 오류가 발생했습니다.');
-        }
+      }
     }
-    };
+  };
+
 
 
   return (

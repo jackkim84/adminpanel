@@ -36,27 +36,44 @@ export default function DashboardLayout() {
   });
 
 
-    // 3. 페이지가 처음 켜질 때 PHP 서버에서 회원 정보 가져오기
+  // 3. 페이지가 처음 켜질 때 PHP 서버에서 회원 정보 가져오기
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         // 로그인 성공 시 저장해둔 토큰이 있다면 헤더에 실어 보냅니다.
         const token = localStorage.getItem('token');
         
-        const response = await axios.get('http://localhost/server/user.php', {
+        const response = await axios.get('https://info7qni.dothome.co.kr/user.php', {
           headers: {
             Authorization: token ? `Bearer ${token}` : ''
           }
         });
 
-        console.log("받아온 회원 데이터:", response.data);
+        console.log("받아온 원본 데이터:", response.data);
 
-        // 서버 응답 구조가 { name: "이수진 상무", role: "최고관리자" } 형태라고 가정
-        if (response.data && response.data.name) {
+        // [서버 데이터 정제] 텍스트 접두사를 지우고 JSON 객체로 파싱
+        let responseData = response.data;
+        if (typeof responseData === 'string') {
+          const jsonStartIndex = responseData.indexOf('{');
+          if (jsonStartIndex !== -1) {
+            try {
+              responseData = JSON.parse(responseData.substring(jsonStartIndex));
+            } catch (parseError) {
+              console.error("회원 데이터 JSON 파싱 실패:", parseError);
+            }
+          }
+        }
+
+        console.log("정제된 회원 데이터 객체:", responseData);
+
+        // [데이터 반영] 검사 대상을 response.data에서 responseData로 변경
+        if (responseData && responseData.name) {
           setUserInfo({
-            name: response.data.name,
-            role: response.data.role || '본사 최고관리자'
+            name: responseData.name,
+            role: responseData.role || '본사 최고관리자'
           });
+        } else {
+          console.warn("회원 정보 데이터에 name 필드가 없습니다:", responseData);
         }
       } catch (error) {
         console.error("회원 정보를 가져오는데 실패했습니다:", error);

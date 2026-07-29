@@ -48,7 +48,7 @@ const [attendance, setAttendance] = useState<Attendance[]>([]);
  const fetchAttendanceData = async (targetPage: number) => {
     try {
         const response = await axios.get(
-            `http://info7qni.dothome.co.kr/attendancelist.php?page=${targetPage}&tab=attendance`
+            `https://info7qni.dothome.co.kr/attendancelist.php?page=${targetPage}&tab=attendance`
         );
         if (response.data) {
         setAttendance(response.data.data);
@@ -65,7 +65,7 @@ const [attendance, setAttendance] = useState<Attendance[]>([]);
       const fetchcertificateData = async (targetPage: number) => {
         try {
           const response = await axios.get(
-              `http://info7qni.dothome.co.kr/certificationfile.php?page=${targetPage}&tab=certificate`
+              `https://info7qni.dothome.co.kr/certificationfile.php?page=${targetPage}&tab=certificate`
           );
 
           if (response.data) {
@@ -107,7 +107,7 @@ const [attendance, setAttendance] = useState<Attendance[]>([]);
         try {
 
             // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-            const response = await axios.post('http://info7qni.dothome.co.kr/updateAttendanceRow.php', {
+            const response = await axios.post('https://info7qni.dothome.co.kr/updateAttendanceRow.php', {
                 id: editRowData.id, 
                 date: editRowData.date,
                 branch: editRowData.branch,
@@ -156,7 +156,7 @@ const [attendance, setAttendance] = useState<Attendance[]>([]);
             const saveRowEdit2 = async (index: number) => {
                 try {
                     // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-                    const response = await axios.post('http://info7qni.dothome.co.kr/updateCertificatefile.php', {
+                    const response = await axios.post('https://info7qni.dothome.co.kr/updateCertificatefile.php', {
                         id: index, // 👈 파라미터로 안전하게 넘어온 진짜 고유 id값을 매핑합니다.
                         branch_name: editRowData2.branchName,       // 지점명
                         request_type: editRowData2.requestType,     // 신청/제출 구분
@@ -223,7 +223,7 @@ const [attendance, setAttendance] = useState<Attendance[]>([]);
             formData.append('file_name', selectedFile.name);
 
             // 3. 서버로 실제 파일 전송 (POST 요청)
-            const response = await axios.post('http://info7qni.dothome.co.kr/uploadHqDoc.php', formData, {
+            const response = await axios.post('https://info7qni.dothome.co.kr/uploadHqDoc.php', formData, {
                 headers: {
                     // 파일을 보낼 때 반드시 명시해야 하는 Content-Type 설정
                     'Content-Type': 'multipart/form-data',

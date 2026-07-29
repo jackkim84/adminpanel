@@ -125,7 +125,7 @@ export default function AcademyPage() {
           if (type === 'hq_course_history') targetIdx = hq_course_history[index].id;
 
           // PHP 백엔드로 수정 내용 전송
-          const response = await axios.post('http://info7qni.dothome.co.kr/updateAcademySpec.php', {
+          const response = await axios.post('https://info7qni.dothome.co.kr/updateAcademySpec.php', {
               type: type,         // 'certification' 또는 'hq_course_history'
               id: targetIdx,      // 👈 변수명을 데이터베이스와 일치하게 id로 변경
               field: field,       // 수정할 컬럼명 (c_name, h_name, rdate, evaluation)
@@ -158,7 +158,7 @@ export default function AcademyPage() {
       const fetchAcademyData = async (targetPage: number) => {
         try {
           const response = await axios.get(
-              `http://info7qni.dothome.co.kr/academylist.php?page=${targetPage}&tab=status`
+              `https://info7qni.dothome.co.kr/academylist.php?page=${targetPage}&tab=status`
           );
           if (response.data) {
             setAcademy(response.data.data);
@@ -173,7 +173,7 @@ export default function AcademyPage() {
       const fetchCourseschedulesData = async (targetPage: number) => {
         try {
           const response = await axios.get(
-              `http://info7qni.dothome.co.kr/courseslist.php?page=${targetPage}&tab=schedule`
+              `https://info7qni.dothome.co.kr/courseslist.php?page=${targetPage}&tab=schedule`
           );
           if (response.data) {
             setHq_course_schedules(response.data.data);
@@ -200,7 +200,7 @@ export default function AcademyPage() {
         console.log("함수로 전달된 idx 값:", idx); 
 
           try {
-            const response = await axios.post('http://info7qni.dothome.co.kr/detailacademy.php', {
+            const response = await axios.post('https://info7qni.dothome.co.kr/detailacademy.php', {
               idx: idx
             });
 
@@ -235,7 +235,7 @@ export default function AcademyPage() {
 
      
             // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-            const response = await axios.post('http://info7qni.dothome.co.kr/updateAcademyRow.php', {
+            const response = await axios.post('https://info7qni.dothome.co.kr/updateAcademyRow.php', {
                 idx: editRowData.idx, 
                 branchName: editRowData.branchName,
                 position: editRowData.position,
@@ -266,7 +266,7 @@ export default function AcademyPage() {
 const saveRowEdit2 = async (index: number) => {
     try {
         // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-        const response = await axios.post('http://info7qni.dothome.co.kr/updateSchdule.php', {
+        const response = await axios.post('https://info7qni.dothome.co.kr/updateSchdule.php', {
             id: index, // 👈 파라미터로 안전하게 넘어온 진짜 고유 id값을 매핑합니다.
             course_name: editRowData2.course_name,
             education_at: editRowData2.education_at,
@@ -312,7 +312,7 @@ const onInsertData = async () => {
 
   try {
         // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-        const response = await axios.post('http://info7qni.dothome.co.kr/insertSchdule.php', {
+        const response = await axios.post('https://info7qni.dothome.co.kr/insertSchdule.php', {
             course_name: course_name,
             education_at: education_at,
             instructor_name: instructor_name,

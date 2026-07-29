@@ -49,7 +49,7 @@ const [currentBranch, setCurrentBranch] = useState("");
   const fetchAesthetic_order = async (targetPage: number , selectedBranch: string = "") => {
 
     try {
-      const response = await axios.get(`http://info7qni.dothome.co.kr/aestheticlist.php?page=${targetPage}&branch=${encodeURIComponent(selectedBranch)}`);
+      const response = await axios.get(`https://info7qni.dothome.co.kr/aestheticlist.php?page=${targetPage}&branch=${encodeURIComponent(selectedBranch)}`);
 
       if (response.data && response.data.success) {
         console.log(response);
@@ -68,7 +68,7 @@ const [currentBranch, setCurrentBranch] = useState("");
     const fetchABranch_order_submission = async (targetPage2: number) => {
 
     try {
-      const response = await axios.get(`http://info7qni.dothome.co.kr/branch_order_submission.php?page=${targetPage2}`);
+      const response = await axios.get(`https://info7qni.dothome.co.kr/branch_order_submission.php?page=${targetPage2}`);
 
       if (response.data && response.data.success) {
         console.log(response);
@@ -110,7 +110,7 @@ const [currentBranch, setCurrentBranch] = useState("");
         try {
             console.log("전송할 데이터:", editRowData); 
             // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-            const response = await axios.post('http://info7qni.dothome.co.kr/updateAesthetic.php', {
+            const response = await axios.post('https://info7qni.dothome.co.kr/updateAesthetic.php', {
                 id: editRowData.id, 
                 branch: editRowData.branch,
                 product_name: editRowData.product_name,
@@ -161,7 +161,7 @@ const [currentBranch, setCurrentBranch] = useState("");
             const saveRowEdit2 = async (index: number) => {
                 try {
                     // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-                    const response = await axios.post('http://info7qni.dothome.co.kr/updateCertificatefile.php', {
+                    const response = await axios.post('https://info7qni.dothome.co.kr/updateCertificatefile.php', {
                         id: index, // 👈 파라미터로 안전하게 넘어온 진짜 고유 id값을 매핑합니다.
                         branch_name: editRowData2.branchName,       // 지점명
                         request_type: editRowData2.requestType,     // 신청/제출 구분
@@ -204,7 +204,7 @@ const [currentBranch, setCurrentBranch] = useState("");
 
         const encodedBranch = encodeURIComponent(currentBranch || "");
 
-          location.href = `http://info7qni.dothome.co.kr/aesthetic_pdf.php?branch=${encodedBranch}`;
+          location.href = `https://info7qni.dothome.co.kr/aesthetic_pdf.php?branch=${encodedBranch}`;
     }
 
 
@@ -214,7 +214,7 @@ const [currentBranch, setCurrentBranch] = useState("");
         try {
 
             // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-            const response = await axios.post('http://info7qni.dothome.co.kr/insertAesthetic.php', {
+            const response = await axios.post('https://info7qni.dothome.co.kr/insertAesthetic.php', {
                 branch: branch,
                 product_name: product_name,
                 spec_unit: spec_unit,

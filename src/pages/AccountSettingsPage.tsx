@@ -31,7 +31,7 @@ export default function NoticePage() {
       try {
         // 로그인 성공 시 저장해둔 토큰이 있다면 헤더에 실어 보냅니다.
     
-        const response = await axios.get(`http://info7qni.dothome.co.kr/userlist.php?page=${targetPage}`);
+        const response = await axios.get(`https://info7qni.dothome.co.kr/userlist.php?page=${targetPage}`);
      
         if (response.data) {
           setUserInfo(response.data.data);
@@ -55,7 +55,7 @@ export default function NoticePage() {
   const changeAccountStatus = async (id:number, status:string) => {
 
     try {
-      const response = await axios.post('http://info7qni.dothome.co.kr/update_user.php', {
+      const response = await axios.post('https://info7qni.dothome.co.kr/update_user.php', {
         id: id,     
         status: status
       });
@@ -89,7 +89,7 @@ export default function NoticePage() {
 
 
     try {
-      const response = await axios.post('http://info7qni.dothome.co.kr/insert_user.php', {
+      const response = await axios.post('https://info7qni.dothome.co.kr/insert_user.php', {
         userId: userId,
         password: password,
         type: type,

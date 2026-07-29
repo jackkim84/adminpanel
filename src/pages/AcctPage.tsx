@@ -58,7 +58,7 @@ export default function AcctPage() {
        const fetchDeposit_managementData = async (targetPage: number , targetDate: string) => {
         try {
             const response = await axios.get(
-                `http://info7qni.dothome.co.kr/deposit_management.php?page=${targetPage}&tab=billing&date=${targetDate}`
+                `https://info7qni.dothome.co.kr/deposit_management.php?page=${targetPage}&tab=billing&date=${targetDate}`
             );
             if (response.data) {
             setDeposit_management(response.data.data);
@@ -85,7 +85,7 @@ export default function AcctPage() {
       const fetchRefundData = async (targetPage: number) => {
         try {
           const response = await axios.get(
-              `http://info7qni.dothome.co.kr/refundlist.php?page=${targetPage}&tab=refund`
+              `https://info7qni.dothome.co.kr/refundlist.php?page=${targetPage}&tab=refund`
           );
 
           if (response.data) {
@@ -129,7 +129,7 @@ export default function AcctPage() {
         try {
 
             // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-            const response = await axios.post('http://info7qni.dothome.co.kr/updateDepositRow.php', {
+            const response = await axios.post('https://info7qni.dothome.co.kr/updateDepositRow.php', {
                 id: editRowData.id, 
                 branch_name: editRowData.branch_name,
                 deposit_date: editRowData.deposit_date,
@@ -178,7 +178,7 @@ export default function AcctPage() {
             const saveRowEdit2 = async (index: number) => {
                 try {
                     // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-                    const response = await axios.post('http://info7qni.dothome.co.kr/updateRefund.php', {
+                    const response = await axios.post('https://info7qni.dothome.co.kr/updateRefund.php', {
                         id: index, // 👈 파라미터로 안전하게 넘어온 진짜 고유 id값을 매핑합니다.
                         branch_name: editRowData2.branch_name, 
                         request_date: editRowData2.request_date,    
