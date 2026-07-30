@@ -28,7 +28,7 @@ export const Login: React.FC = () => {
 
         try {
        
-        const response = await axios.post('http://info7qni.dothome.co.kr/login.php', {
+        const response = await axios.post('https://info7qni.dothome.co.kr/login.php', {
             userId: name, 
             password: password,
         });
