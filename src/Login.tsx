@@ -3,10 +3,29 @@ import './App.css';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-<link rel="stylesheet" as="style" 
-  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 export const Login: React.FC = () => {
 
+
+
+      // 1. 유효한 JSON 문자열만 추출하여 객체로 파싱하는 공통 헬퍼 함수
+const parsePureJson = (rawResponse: any) => {
+  let data = rawResponse;
+  if (typeof data === 'string') {
+    try {
+      // { 로 시작하는 부분부터 추출하여 파싱 시도
+      const jsonStartIndex = data.indexOf('{');
+      if (jsonStartIndex !== -1) {
+        const pureJsonString = data.substring(jsonStartIndex);
+        data = JSON.parse(pureJsonString);
+      } else {
+        console.error("올바른 JSON 형태를 찾을 수 없습니다.");
+      }
+    } catch (parseError) {
+      console.error("데이터 파싱 실패:", parseError);
+    }
+  }
+  return data;
+};
 
    
     const [name, setName] = useState<string>('');
@@ -33,7 +52,9 @@ export const Login: React.FC = () => {
             password: password,
         });
     
-         if (response.data && response.data.success === true) {
+        const responseData = parsePureJson(response.data);
+
+        if (responseData && (responseData.success === true || responseData.success === "true")) {
             console.log("서버로부터 받은 응답 전체:", response); 
             navigate('/dashboard'); 
          }else{
