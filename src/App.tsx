@@ -14,8 +14,7 @@ const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
 const AcademyPage = lazy(() => import('./pages/AcademyPage'));
 
 function App() {
-  // 브라우저 저장소에서 토큰 존재 여부를 boolean 값(true/false)으로 판별합니다.
-  const hasToken = !!localStorage.getItem('token');
+  // [수정 완료] 기존 토큰 유무 검사 코드를 완전히 지웠습니다.
 
   return (
     <Router>
@@ -23,11 +22,11 @@ function App() {
         <Routes>
           {/* 
             [변경 완료] 
-            루트 주소('/')로 들어오면 Home 컴포넌트를 거치지 않고 바로 목적지로 순간 이동합니다.
+            이제 루트 주소('/')로 들어오면 토큰에 상관없이 무조건 로그인 화면으로 즉시 다이렉트 패스합니다.
           */}
           <Route 
             path="/" 
-            element={hasToken ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} 
+            element={<Navigate to="/login" replace />} 
           />
           
           {/* 로그인 페이지 경로 */}
