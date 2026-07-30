@@ -45,7 +45,7 @@ const handleLogin = async (e: React.FormEvent) => {
     }
 
     try {
-        const response = await axios.post('https://dothome.co.kr', {
+        const response = await axios.post('https://info7qni.dothome.co.kr/login.php', {
             userId: name, 
             password: password,
         });
