@@ -35,39 +35,51 @@ const parsePureJson = (rawResponse: any) => {
     const navigate = useNavigate();
 
     // 2. 로그인 버튼을 누르거나 폼을 제출했을 때 실행되는 함수 [1]
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault(); 
-        setErrorMessage(''); 
+const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault(); 
+    setErrorMessage(''); 
 
-   
-        if (!name.trim() || !password.trim()) {
+    if (!name.trim() || !password.trim()) {
         setErrorMessage('이름과 비밀번호를 모두 입력해 주세요.');
         return;
-        }
+    }
 
-        try {
-       
-        const response = await axios.post('https://info7qni.dothome.co.kr/login.php', {
+    try {
+        const response = await axios.post('https://dothome.co.kr', {
             userId: name, 
             password: password,
         });
-    
+
+        // 1. Connected successfully... 문자열을 걷어내고 JSON 객체로 파싱합니다.
         const responseData = parsePureJson(response.data);
 
+        console.log("실제 정제된 데이터 객체:", responseData);
+
+        // 2. [핵심 수정] 서버 응답 성공 여부를 확실하게 판단합니다.
         if (responseData && (responseData.success === true || responseData.success === "true")) {
-            console.log("서버로부터 받은 응답 전체:", response); 
-            navigate('/dashboard'); 
-         }else{
-            setErrorMessage(response.data.message || '로그인에 실패했습니다.');
-             console.log("서버로부터 받은 응답 전체:", response); 
-         }
-      
-        } catch (error: any) {
-  
-        const msg = error.response?.data?.message || '서버와의 통신에 실패했습니다.';
-        setErrorMessage(msg);
+            
+            // 3. [가장 중요] 콘솔에 찍힌 대로 토큰과 merid 값을 가져와 저장합니다.
+            localStorage.setItem('token', responseData.token || '');
+            
+            // 서버가 userId가 아닌 merid로 보내주고 있으므로 responseData.merid를 꺼내야 합니다!
+            const finalUserName = responseData.merid || responseData.userId || name;
+            localStorage.setItem('userName', finalUserName);
+            localStorage.setItem('userRole', '본사 최고관리자'); 
+            
+            // 대시보드로 즉시 리다이렉트
+            navigate('/dashboard', { replace: true }); 
+        } else {
+            const failMessage = responseData?.message || '로그인에 실패했습니다.';
+            setErrorMessage(failMessage);
         }
-    }; 
+  
+    } catch (error: any) {
+        const rawErrData = error.response?.data;
+        const cleanErrData = parsePureJson(rawErrData);
+        const msg = cleanErrData?.message || '서버와의 통신에 실패했습니다.';
+        setErrorMessage(msg);
+    }
+};
   
   return (
             <div id="loginScreen">
