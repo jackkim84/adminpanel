@@ -5,7 +5,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './Login';
 import DashboardLayout from './DashboardLayout';
 
-// 대시보드 하위 페이지들은 필요할 때만 불러오도록 lazy 로딩 처리
+// 대시보드 내부 하위 페이지들은 필요할 때만 불러오도록 lazy 로딩 처리 (속도 최적화)
 const NoticePage = lazy(() => import('./pages/NoticePage'));
 const HrPage = lazy(() => import('./pages/HrPage'));
 const AcctPage = lazy(() => import('./pages/AcctPage'));
@@ -14,15 +14,14 @@ const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
 const AcademyPage = lazy(() => import('./pages/AcademyPage'));
 
 function App() {
-  // [수정 완료] 기존 토큰 유무 검사 코드를 완전히 지웠습니다.
-
   return (
     <Router>
       <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center' }}>화면을 불러오는 중입니다...</div>}>
         <Routes>
           {/* 
             [변경 완료] 
-            이제 루트 주소('/')로 들어오면 토큰에 상관없이 무조건 로그인 화면으로 즉시 다이렉트 패스합니다.
+            메인 주소('/')로 들어오면 토큰 상태를 따지지 않고 
+            무조건 로그인 화면('/login')으로 즉시 자동 이동(Redirect) 시킵니다.
           */}
           <Route 
             path="/" 
