@@ -16,63 +16,38 @@ export const Login: React.FC = () => {
     const navigate = useNavigate();
 
     // 2. 로그인 버튼을 누르거나 폼을 제출했을 때 실행되는 함수 [1]
- const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); 
-    setErrorMessage(''); 
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault(); 
+        setErrorMessage(''); 
 
-    if (!name.trim() || !password.trim()) {
+   
+        if (!name.trim() || !password.trim()) {
         setErrorMessage('이름과 비밀번호를 모두 입력해 주세요.');
         return;
-    }
+        }
 
-    try {
-        const response = await axios.post('https://info7qni.dothome.co.kr/login.php', {
+        try {
+       
+        const response = await axios.post('http://info7qni.dothome.co.kr/login.php', {
             userId: name, 
             password: password,
         });
-
-        console.log("서버로부터 받은 응답 전체:", response);
-
-        // 1. 서버 응답 데이터 추출
-        let responseData = response.data;
-
-       // 2. 백엔드 응답 데이터 추출 및 텍스트 정제
-   
-
-            if (typeof responseData === 'string') {
-                try {
-                    // "Connected successfully using PDO" 같은 접두사 문장 제거하고 {로 시작하는 부분만 추출
-                    const jsonStartIndex = responseData.indexOf('{');
-                    if (jsonStartIndex !== -1) {
-                        const pureJsonString = responseData.substring(jsonStartIndex);
-                        responseData = JSON.parse(pureJsonString);
-                    } else {
-                        console.error("올바른 JSON 형태를 찾을 수 없습니다.");
-                    }
-                } catch (parseError) {
-                    console.error("데이터 파싱 실패:", parseError);
-                }
-            }
-        // 3. 응답 데이터의 success 여부 검증 (문자열 "true" 또는 불리언 true 모두 대응)
-        if (responseData && (responseData.success === true || responseData.success === "true")) {
-            // 로그인 성공 시 토큰 저장 (예: localStorage) 후 이동
-            if (responseData.token) {
-                localStorage.setItem('token', responseData.token);
-            }
+    
+         if (response.data && response.data.success === true) {
+            console.log("서버로부터 받은 응답 전체:", response); 
             navigate('/dashboard'); 
-        } else {
-            // 서버 응답이 success: false 이거나 올바르지 않은 경우
-            const failMessage = responseData?.message || '로그인에 실패했습니다.';
-            setErrorMessage(failMessage);
-        }
+         }else{
+            setErrorMessage(response.data.message || '로그인에 실패했습니다.');
+             console.log("서버로부터 받은 응답 전체:", response); 
+         }
+      
+        } catch (error: any) {
   
-    } catch (error: any) {
-        console.error("통신 에러 발생:", error);
         const msg = error.response?.data?.message || '서버와의 통신에 실패했습니다.';
         setErrorMessage(msg);
-    }
-};
-
+        }
+    }; 
+  
   return (
             <div id="loginScreen">
            <form onSubmit={handleLogin} >

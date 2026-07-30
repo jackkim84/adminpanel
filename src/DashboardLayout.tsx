@@ -43,7 +43,7 @@ export default function DashboardLayout() {
         // 로그인 성공 시 저장해둔 토큰이 있다면 헤더에 실어 보냅니다.
         const token = localStorage.getItem('token');
         
-        const response = await axios.get('https://info7qni.dothome.co.kr/user.php', {
+        const response = await axios.get('https://info7qni.dothome.co.kr/user2.php', {
           headers: {
             Authorization: token ? `Bearer ${token}` : ''
           }

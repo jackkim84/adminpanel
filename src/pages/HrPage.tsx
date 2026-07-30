@@ -42,51 +42,79 @@ const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [certificateData, setCertificateData] = useState<Certificate[]>([]);
 
 
-  
-
-
- const fetchAttendanceData = async (targetPage: number) => {
+  // 1. 유효한 JSON 문자열만 추출하여 객체로 파싱하는 공통 헬퍼 함수
+const parsePureJson = (rawResponse: any) => {
+  let data = rawResponse;
+  if (typeof data === 'string') {
     try {
-        const response = await axios.get(
-            `https://info7qni.dothome.co.kr/attendancelist.php?page=${targetPage}&tab=attendance`
-        );
-        if (response.data) {
-        setAttendance(response.data.data);
-        // console.log(response.data.data);
-        setAttendanceTotalPages(response.data.total_pages);
-        }
-    } catch (error) {
-        console.error("아카데미 정보를 가져오는데 실패했습니다:", error);
+      // { 로 시작하는 부분부터 추출하여 파싱 시도
+      const jsonStartIndex = data.indexOf('{');
+      if (jsonStartIndex !== -1) {
+        const pureJsonString = data.substring(jsonStartIndex);
+        data = JSON.parse(pureJsonString);
+      } else {
+        console.error("올바른 JSON 형태를 찾을 수 없습니다.");
+      }
+    } catch (parseError) {
+      console.error("데이터 파싱 실패:", parseError);
     }
+  }
+  return data;
 };
 
 
-      // 🔵 2번 탭 데이터 전용 함수
-      const fetchcertificateData = async (targetPage: number) => {
-        try {
-          const response = await axios.get(
-              `https://info7qni.dothome.co.kr/certificationfile.php?page=${targetPage}&tab=certificate`
-          );
+// 🟢 1번 탭 데이터 전용 함수 (출석 관리 목록)
+const fetchAttendanceData = async (targetPage: number) => {
+  try {
+    const response = await axios.get(
+      `https://info7qni.dothome.co.kr/attendancelist.php?page=${targetPage}&tab=attendance`
+    );
+    console.log("attendancelist 응답 전체:", response.data);
 
-          if (response.data) {
-      
-            setCertificateData(response.data.data);
-            setCertificateTotalPages(response.data.total_pages);
-          }
-        } catch (error) {
-          console.error("교육 일정 정보를 가져오는데 실패했습니다:", error);
-        }
-      };
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
 
+    if (responseData) {
+      // 데이터 누락 시 화면이 깨지지 않도록 기본값 처리
+      setAttendance(responseData.data || []);
+      setAttendanceTotalPages(responseData.total_pages || 1);
+    }
+  } catch (error) {
+    console.error("출석 정보를 가져오는데 실패했습니다:", error); // 로그 문구 수정
+  }
+};
 
+// 🔵 2번 탭 데이터 전용 함수 (자격증 파일 목록)
+const fetchcertificateData = async (targetPage: number) => {
+  try {
+    const response = await axios.get(
+      `https://info7qni.dothome.co.kr/certificationfile.php?page=${targetPage}&tab=certificate`
+    );
+    console.log("certificationfile 응답 전체:", response.data);
 
-    useEffect(() => {
-        fetchAttendanceData(attendancePage);
-    }, [attendancePage]); 
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
 
-    useEffect(() => {
-        fetchcertificateData(certificatePage);
-    }, [certificatePage]); 
+    if (responseData) {
+      // 데이터 누락 시 화면이 깨지지 않도록 기본값 처리
+      setCertificateData(responseData.data || []);
+      setCertificateTotalPages(responseData.total_pages || 1);
+    }
+  } catch (error) {
+    console.error("자격증 파일 정보를 가져오는데 실패했습니다:", error); // 로그 문구 수정
+  }
+};
+
+// 🟢 1번 탭 데이터용 감시자
+useEffect(() => {
+  fetchAttendanceData(attendancePage);
+}, [attendancePage]); 
+
+// 🔵 2번 탭 데이터용 감시자
+useEffect(() => {
+  fetchcertificateData(certificatePage);
+}, [certificatePage]);
+
 
 
  // 1. 현재 수정 중인 줄(Row)의 인덱스 번호를 저장 (수정 중이 아니면 null)
@@ -102,95 +130,96 @@ const [attendance, setAttendance] = useState<Attendance[]>([]);
     };
 
 
-        // 4. [저장] 버튼 클릭 시 백엔드 DB 전송 및 실시간 화면 동기화 함수
-    const saveRowEdit = async (index: number) => {
-        try {
+    // 🔍 1. 출석 관리 행 수정 저장 함수
+const saveRowEdit = async (index: number) => {
+  try {
+    // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
+    const response = await axios.post('https://info7qni.dothome.co.kr/updateAttendanceRow.php', {
+      id: editRowData.id, 
+      date: editRowData.date,
+      branch: editRowData.branch,
+      name: editRowData.name,
+      status: editRowData.status,
+      note: editRowData.note,
+      checked: editRowData.checked
+    });
+    console.log("updateAttendanceRow 응답 전체:", response.data);
 
-            // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-            const response = await axios.post('https://info7qni.dothome.co.kr/updateAttendanceRow.php', {
-                id: editRowData.id, 
-                date: editRowData.date,
-                branch: editRowData.branch,
-                name: editRowData.name,
-                status: editRowData.status,
-                note: editRowData.note,
-                checked: editRowData.checked
-            });
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
 
+    if (responseData && (responseData.success === true || responseData.success === "true")) {
+      // 1. 화면에 반영할 새 배열 복사본 만들기
+      const updated = [...attendance];
+      updated[index] = { ...editRowData };
 
+      setAttendance(updated);
+      setEditRowIndex(null);
+      fetchAttendanceData(attendancePage);
+      alert('성공적으로 수정되었습니다.');
+    } else {
+      alert(responseData?.message || '수정에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error("출석 내역 수정 실패:", error); // 명확한 로그 문구로 수정
+    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+  }
+};
 
-            if (response.data && response.data.success) {
-                  // 1. 화면에 반영할 새 배열 복본 만들기
-                  const updated = [...attendance];
-                  updated[index] = { ...editRowData };
+// 1. 현재 수정 중인 줄(Row)의 인덱스 번호를 저장 (수정 중이 아니면 null)
+const [editRowIndex2, setEditRowIndex2] = useState<number | null>(null);
 
-                  setAttendance(updated);
-                  setEditRowIndex(null);
-                  fetchAttendanceData(attendancePage);
-                  alert('성공적으로 수정되었습니다.');
+// 2. 수정 중인 한 줄의 데이터들을 담아둘 임시 버퍼 상태
+const [editRowData2, setEditRowData2] = useState<any>({});
 
-              } else {
-                  alert(response.data.message || '수정에 실패했습니다.');
-              }
-        } catch (error) {
-            console.error("테이블 수정 실패:", error);
-            alert('서버 전송 중 네트워크 오류가 발생했습니다.');
-        }
-    };
+// 3. [수정] 버튼 클릭 시 해당 줄의 데이터를 버퍼에 담고 인풋창으로 전환하는 함수
+const startRowEdit2 = (index: number, currentItem: any) => {
+  setEditRowIndex2(index);
+  setEditRowData2({ ...currentItem }); 
+};
 
-
-           // 1. 현재 수정 중인 줄(Row)의 인덱스 번호를 저장 (수정 중이 아니면 null)
-        const [editRowIndex2, setEditRowIndex2] = useState<number | null>(null);
+// 🔍 2. 자격증 파일 행 수정 저장 함수
+// 💡 파라미터에 index와 id를 모두 받아내도록 규격을 명시합니다.
+// 인자로 index(순서) 대신, 실제 row 데이터나 고유 id를 받도록 수정합니다.
+const saveRowEdit2 = async (rowId: number) => {
+  try {
+    // 💡 안전장치: 현재 수정 중인 데이터가 비어있지 않은지 검증
+if (!editRowData2.branch_name || !editRowData2.target_name) {
+      alert("지점명과 대상자는 필수 입력 항목입니다.");
+      return;
+    }
+    // PHP 서버로 수정본 전송 (방금 전 보여주신 모든 컬럼을 받는 PHP 파일용)
+    const response = await axios.post('https://info7qni.dothome.co.kr/updateCertificatefile.php', {
+        id: rowId, // 안전하게 받아온 데이터베이스 고유 ID 전달
+      branch_name: editRowData2.branch_name,       // 👈 변수명 수정
+      request_type: editRowData2.request_type,     // 👈 변수명 수정
+      target_name: editRowData2.target_name,       // 👈 변수명 수정
+      request_date: editRowData2.request_date,     // 👈 변수명 수정
+      attached_file: editRowData2.attached_file,   // 👈 변수명 수정
+      status: editRowData2.status                      
+    });
     
-        // 2. 수정 중인 한 줄의 데이터들을 담아둘 임시 버퍼 상태
-        const [editRowData2, setEditRowData2] = useState<any>({});
-    
-        // 3. [수정] 버튼 클릭 시 해당 줄의 데이터를 버퍼에 담고 인풋창으로 전환하는 함수
-        const startRowEdit2 = (index: number, currentItem: any) => {
-              setEditRowIndex2(index);
-              setEditRowData2({ ...currentItem }); 
-        };
+    console.log("updateCertificatefile 응답 전체:", response.data);
 
+    const responseData = parsePureJson(response.data);
 
-        // 💡 파라미터에 index와 id를 모두 받아내도록 규격을 명시합니다.
-            const saveRowEdit2 = async (index: number) => {
-                try {
-                    // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-                    const response = await axios.post('https://info7qni.dothome.co.kr/updateCertificatefile.php', {
-                        id: index, // 👈 파라미터로 안전하게 넘어온 진짜 고유 id값을 매핑합니다.
-                        branch_name: editRowData2.branchName,       // 지점명
-                        request_type: editRowData2.requestType,     // 신청/제출 구분
-                        target_name: editRowData2.targetName,       // 대상자
-                        request_date: editRowData2.requestDate,     // 요청일자
-                        attached_file: editRowData2.attachedFile,   // 지점 첨부파일
-                        status: editRowData2.status                 // 상태 ('Y' 또는 'N')
-                    });
+    if (responseData && (responseData.success === true || responseData.success === "true")) {
+      
+      // 인풋창 수정 모드 끄기 (state 초기화)
+      setEditRowIndex2(null);
+      
+      // ⭐ 서버에서 최신 데이터를 다시 읽어와 화면을 갱신합니다.
+      fetchcertificateData(certificatePage);
 
-                    if (response.data && response.data.success) {
-                        // 1. 화면에 반영할 새 배열 복사본 만들기
-                        const updated = [...certificateData];
-                        updated[index] = { ...editRowData2 };
-
-                    
-
-                        setCertificateData(updated);
-                        
-                        // 3. 인풋창 수정 모드 끄기
-                        setEditRowIndex2(null);
-                        fetchcertificateData(certificatePage);
-
-                        alert(response.data.message);
-
-                    } else {
-                        alert(response.data.message || '수정에 실패했습니다.');
-                    }
-                } catch (error) {
-                    console.error("테이블 수정 실패:", error);
-                    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
-                }
-            };
-
-
+      alert(responseData.message || '성공적으로 수정되었습니다.');
+    } else {
+      alert(responseData?.message || '수정에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error("자격증 파일 내역 수정 실패:", error);
+    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+  }
+};
 
 
 
@@ -204,46 +233,80 @@ const [attendance, setAttendance] = useState<Attendance[]>([]);
         }
     };
 
-    const handleUploadDoc = async () => {
-        // 1. 파일 선택 여부 검증
-        if (!selectedFile) {
-            alert('배포할 파일을 먼저 선택해주세요.');
-            return;
-        }
+const handleUploadDoc = async () => {
+    // 1. 파일 선택 여부 검증
+    if (!selectedFile) {
+        alert('배포할 파일을 먼저 선택해주세요.');
+        return;
+    }
+    
+    try {
+        // 2. 바이너리 파일 전송을 위한 FormData 객체 생성
+        const formData = new FormData();
         
-        try {
-            // 2. 바이너리 파일 전송을 위한 FormData 객체 생성
-            const formData = new FormData();
-            
-            // 'hq_file'이라는 키값으로 실제 파일 객체를 담습니다.
-            // (백엔드 개발자와 협의한 $_FILES['hq_file'] 혹은 req.file 이름과 맞춰야 합니다.)
-            formData.append('hq_file', selectedFile); 
-            
-            // 필요하다면 파일명이나 추가 데이터도 함께 보낼 수 있습니다.
-            formData.append('file_name', selectedFile.name);
+        // 'hq_file'이라는 키값으로 실제 파일 객체를 담습니다.
+        formData.append('hq_file', selectedFile); 
+        
+        // 필요하다면 파일명이나 추가 데이터도 함께 보낼 수 있습니다.
+        formData.append('file_name', selectedFile.name);
 
-            // 3. 서버로 실제 파일 전송 (POST 요청)
-            const response = await axios.post('https://info7qni.dothome.co.kr/uploadHqDoc.php', formData, {
-                headers: {
-                    // 파일을 보낼 때 반드시 명시해야 하는 Content-Type 설정
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+        // 3. 서버로 실제 파일 전송 (POST 요청)
+        const response = await axios.post('https://info7qni.dothome.co.kr/uploadHqDoc.php', formData, {
+            headers: {
+                // 파일을 보낼 때 반드시 명시해야 하는 Content-Type 설정
+                'Content-Type': 'multipart/form-data',
+            },
+        });
 
-            // 4. 업로드 성공 처리
-            if (response.data && response.data.success) {
-                alert(`🎉 ${selectedFile.name} 파일이 성공적으로 배포되었습니다!`);
-                setSelectedFile(null); // 업로드 완료 후 선택된 파일 상태 초기화
-            } else {
-                alert(`업로드 실패: ${response.data.message || '서버 오류가 발생했습니다.'}`);
-            }
+        console.log("uploadHqDoc 응답 전체:", response.data);
 
-        } catch (error) {
-            // 5. 네트워크 및 서버 에러 처리
-            console.error('파일 업로드 중 에러 발생:', error);
-            alert('서버 통신 중 에러가 발생했습니다. 주소나 네트워크를 확인해 주세요.');
+        // 4. 정규식 기반 헬퍼 함수로 데이터 정제 (불필요한 PHP 접두사 제거)
+        const responseData = parsePureJson(response.data);
+
+        // 5. 응답 데이터의 success 여부 검증 (불리언 및 문자열 상호 호환)
+        if (responseData && (responseData.success === true || responseData.success === "true")) {
+            alert(`🎉 ${selectedFile.name} 파일이 성공적으로 배포되었습니다!`);
+            setSelectedFile(null); // 업로드 완료 후 선택된 파일 상태 초기화
+        } else {
+            // 서버가 success: false를 반환했거나 파싱에 실패한 경우
+            alert(`업로드 실패: ${responseData?.message || '서버 오류가 발생했습니다.'}`);
         }
-    };
+
+    } catch (error) {
+        // 6. 네트워크 및 서버 에러 처리
+        console.error('파일 업로드 중 에러 발생:', error);
+        alert('서버 통신 중 에러가 발생했습니다. 주소나 네트워크를 확인해 주세요.');
+    }
+};
+
+
+const  onStatus = async (id : number) => {
+  try {
+    // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
+    const response = await axios.post('https://info7qni.dothome.co.kr/updateCertificatestatus.php', {
+      id: id, 
+      status: 'Y',       
+    });
+    console.log("updateCertificatefile 응답 전체:", response.data);
+
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
+
+    if (responseData && (responseData.success === true || responseData.success === "true")) {
+
+      fetchcertificateData(certificatePage);
+
+      alert(responseData.message || '성공적으로 수정되었습니다.');
+    } else {
+      alert(responseData?.message || '수정에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error("자격증 파일 내역 수정 실패:", error); // 명확한 로그 문구로 수정
+    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+  }
+
+
+}
 
 
   return (
@@ -616,7 +679,7 @@ const [attendance, setAttendance] = useState<Attendance[]>([]);
                                     {item.status === 'Y' ? (
                                         '확인완료'
                                     ) : (
-                                        <button className="btn-sm" >
+                                        <button className="btn-sm" onClick={() => onStatus(item.id)}>
                                             확인 및 서류 승인
                                         </button>
                                     )

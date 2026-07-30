@@ -112,236 +112,284 @@ export default function AcademyPage() {
     };
 
 
+const parsePureJson = (rawResponse: any): any => {
+  // 1. 이미 객체(Object) 형태로 들어온 경우 그대로 반환
+  if (rawResponse && typeof rawResponse === 'object') {
+    return rawResponse;
+  }
 
-
-  const saveEdit = async () => {
-      if (!editTarget) return;
-      const { type, index, field } = editTarget;
-
-      try {
-          // 고유 식별자 키를 .idx 대신 정의된 .id 로 변경합니다.
-          let targetIdx: number | null = null;
-          if (type === 'certification') targetIdx = certification[index].id;
-          if (type === 'hq_course_history') targetIdx = hq_course_history[index].id;
-
-          // PHP 백엔드로 수정 내용 전송
-          const response = await axios.post('https://info7qni.dothome.co.kr/updateAcademySpec.php', {
-              type: type,         // 'certification' 또는 'hq_course_history'
-              id: targetIdx,      // 👈 변수명을 데이터베이스와 일치하게 id로 변경
-              field: field,       // 수정할 컬럼명 (c_name, h_name, rdate, evaluation)
-              value: editValue    // 새로 입력한 텍스트
-          });
-
-          if (response.data && response.data.success) {
-                if (type === 'certification') {
-                    const updated = [...certification]; // 1) 기존 배열 복사 (불변성 유지)
-                    updated[index] = { ...updated[index], [field]: editValue } as any; // 2) 해당 특정 컬럼만 입력값으로 교체
-                    setCertification(updated); // 3) 리액트 상태 업데이트 -> 화면이 새로고침 없이 바로 바뀜
-                } else if (type === 'hq_course_history') {
-                    const updated = [...hq_course_history];
-                    updated[index] = { ...updated[index], [field]: editValue } as any;
-                    setHq_course_history(updated);
-                }
-            } else {
-                alert(response.data.message || '수정에 실패했습니다.');
-            }
-      } catch (error) {
-          console.error("데이터 수정 통신 실패:", error);
-          alert('서버 전송 중 네트워크 에러가 발생했습니다.');
-      } finally {
-          setEditTarget(null);
-      }
-  };
-
-
-      // 🟢 1번 탭 데이터 전용 함수
-      const fetchAcademyData = async (targetPage: number) => {
-        try {
-          const response = await axios.get(
-              `https://info7qni.dothome.co.kr/academylist.php?page=${targetPage}&tab=status`
-          );
-          if (response.data) {
-            setAcademy(response.data.data);
-            setAcademyTotalPages(response.data.total_pages);
-          }
-        } catch (error) {
-          console.error("아카데미 정보를 가져오는데 실패했습니다:", error);
-        }
-      };
-
-      // 🔵 2번 탭 데이터 전용 함수
-      const fetchCourseschedulesData = async (targetPage: number) => {
-        try {
-          const response = await axios.get(
-              `https://info7qni.dothome.co.kr/courseslist.php?page=${targetPage}&tab=schedule`
-          );
-          if (response.data) {
-            setHq_course_schedules(response.data.data);
-            setScheduleTotalPages(response.data.total_pages);
-          }
-        } catch (error) {
-          console.error("교육 일정 정보를 가져오는데 실패했습니다:", error);
-        }
-      };
-
-
-     useEffect(() => {
-      fetchAcademyData(academyPage);
-        }, [academyPage]); 
-
-        // 🔵 2번 탭 데이터용 감시자
-        useEffect(() => {
-            fetchCourseschedulesData(schedulePage);
-        }, [schedulePage]);
-
-      const detailAcademy = async (idx : number) => {
-
-
-        console.log("함수로 전달된 idx 값:", idx); 
-
-          try {
-            const response = await axios.post('https://info7qni.dothome.co.kr/detailacademy.php', {
-              idx: idx
-            });
-
-            setCertification(response.data.certification);
-            setHq_course_history(response.data.hq_course_history);
-
-            
-          if (response.data && response.data.success) {
-
-              console.log(response.data);
-              setCertification(response.data.certification);
-              setHq_course_history(response.data.hq_course_history);
-              setSelectedEmpId(1);
-          
-          }
-
-          } catch (error) {
-            console.error("공지 등록 실패:", error);
-            alert('서버 전송 중 오류가 발생했습니다.');
-          }
-
-      }
-
-
-
-      
-   
-
-    // 4. [저장] 버튼 클릭 시 백엔드 DB 전송 및 실시간 화면 동기화 함수
-    const saveRowEdit = async (index: number) => {
-        try {
-
-     
-            // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-            const response = await axios.post('https://info7qni.dothome.co.kr/updateAcademyRow.php', {
-                idx: editRowData.idx, 
-                branchName: editRowData.branchName,
-                position: editRowData.position,
-                courseName: editRowData.courseName,
-                status: editRowData.status,
-                issueDate: editRowData.issueDate
-            });
-            if (response.data && response.data.success) {
-                  // 1. 화면에 반영할 새 배열 복본 만들기
-                  const updated = [...academy];
-                  updated[index] = { ...editRowData };
-
-                  setAcademy(updated);
-                  setEditRowIndex(null);
-                  fetchAcademyData(academyPage);
-                  alert('성공적으로 수정되었습니다.');
-
-              } else {
-                  alert(response.data.message || '수정에 실패했습니다.');
-              }
-        } catch (error) {
-            console.error("테이블 수정 실패:", error);
-            alert('서버 전송 중 네트워크 오류가 발생했습니다.');
-        }
-    };
-
-// 💡 파라미터에 index와 id를 모두 받아내도록 규격을 명시합니다.
-const saveRowEdit2 = async (index: number) => {
+  // 2. 문자열(String)인 경우 정제 작업 시작
+  if (typeof rawResponse === 'string') {
     try {
-        // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-        const response = await axios.post('https://info7qni.dothome.co.kr/updateSchdule.php', {
-            id: index, // 👈 파라미터로 안전하게 넘어온 진짜 고유 id값을 매핑합니다.
-            course_name: editRowData2.course_name,
-            education_at: editRowData2.education_at,
-            instructor_name: editRowData2.instructor_name,
-            location: editRowData2.location,
-            current_count: editRowData2.current_count,
-            max_count: editRowData2.max_count
+      // { 로 시작해서 } 로 끝나는 JSON 형태만 정규식으로 정확히 추출
+      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+      
+      if (jsonMatch) {
+        const pureJsonString = jsonMatch[0];
+        return JSON.parse(pureJsonString);
+      }
+    } catch (parseError) {
+      console.error("💡 [parsePureJson] JSON 파싱 실패. 원본 데이터:", rawResponse);
+      console.error("💡 [parsePureJson] 발생 에러:", parseError);
+    }
+  }
+
+  // 3. 파싱에 실패하거나 유효하지 않은 데이터인 경우 null 반환
+  return null;
+};
+
+const saveEdit = async () => {
+    if (!editTarget) return;
+    const { type, index, field } = editTarget;
+
+    try {
+        // 고유 식별자 키를 .idx 대신 정의된 .id 로 변경합니다.
+        let targetIdx: number | null = null;
+        if (type === 'certification') targetIdx = certification[index].id;
+        if (type === 'hq_course_history') targetIdx = hq_course_history[index].id;
+
+        // PHP 백엔드로 수정 내용 전송
+        const response = await axios.post('https://info7qni.dothome.co.kr/updateAcademySpec.php', {
+            type: type,         // 'certification' 또는 'hq_course_history'
+            id: targetIdx,      // 👈 변수명을 데이터베이스와 일치하게 id로 변경
+            field: field,       // 수정할 컬럼명 (c_name, h_name, rdate, evaluation)
+            value: editValue    // 새로 입력한 텍스트
         });
 
-        if (response.data && response.data.success) {
-            // 1. 화면에 반영할 새 배열 복사본 만들기
-            const updated = [...hq_course_schedules];
-            updated[index] = { ...editRowData2 };
+        console.log("updateAcademySpec 응답 전체:", response.data);
 
-           
+        // 1. 공통 헬퍼 함수를 통한 데이터 정제 (불필요한 PHP 문자열 제거)
+        const responseData = parsePureJson(response.data);
 
-            // 2. 리액트 상태 배열을 먼저 교체하여 0.01초 만에 화면 갱신
-            setHq_course_schedules(updated);
+        // 2. 응답 데이터의 success 여부 검증 (불리언 true 및 문자열 "true" 모두 대응)
+        if (responseData && (responseData.success === true || responseData.success === "true")) {
             
-            // 3. 인풋창 수정 모드 끄기
-            setEditRowIndex2(null);
-            fetchCourseschedulesData(schedulePage);
-
-             alert(response.data.message);
-
-            // 4. [제거] fetchCourseschedulesData(schedulePage); 
-            // 💡 리액트 state를 직접 갈아끼웠으므로 백엔드에서 다시 다운로드할 필요가 없습니다!
-
-            // 5. 모든 처리가 완료된 후 최종 알림창 띄우기
-            // alert('성공적으로 수정되었습니다.');
-
+            // 3. 리액트 상태 업데이트 -> 화면이 새로고침 없이 바로 바뀜
+            if (type === 'certification') {
+                const updated = [...certification]; // 기존 배열 복사 (불변성 유지)
+                updated[index] = { ...updated[index], [field]: editValue } as any; // 해당 특정 컬럼만 입력값으로 교체
+                setCertification(updated); 
+            } else if (type === 'hq_course_history') {
+                const updated = [...hq_course_history];
+                updated[index] = { ...updated[index], [field]: editValue } as any;
+                setHq_course_history(updated);
+            }
+            
         } else {
-            alert(response.data.message || '수정에 실패했습니다.');
+            // 서버 응답이 success: false 이거나 올바르지 않은 경우
+            alert(responseData?.message || '수정에 실패했습니다.');
         }
     } catch (error) {
-        console.error("테이블 수정 실패:", error);
-        alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+        console.error("데이터 수정 통신 실패:", error);
+        alert('서버 전송 중 네트워크 에러가 발생했습니다.');
+    } finally {
+        setEditTarget(null);
     }
 };
 
 
-const onInsertData = async () => {
+
+// 🟢 1번 탭 데이터 전용 함수 (아카데미 목록)
+const fetchAcademyData = async (targetPage: number) => {
+  try {
+    const response = await axios.get(
+      `https://info7qni.dothome.co.kr/academylist.php?page=${targetPage}&tab=status`
+    );
+    console.log("academylist 응답 전체:", response.data);
+
+    // 공통 헬퍼 함수를 사용하여 데이터 정제
+    const responseData = parsePureJson(response.data);
+
+    if (responseData) {
+      // 데이터가 비어있을 경우를 대비해 안전하게 기본값 처리
+      const listData = responseData.data || responseData.academies || [];
+      const totalPages = responseData.total_pages || responseData.totalPages || 1;
+
+      setAcademy(listData);
+      setAcademyTotalPages(totalPages);
+    }
+  } catch (error) {
+    console.error("아카데미 정보를 가져오는데 실패했습니다:", error);
+  }
+};
+
+// 🔵 2번 탭 데이터 전용 함수 (교육 일정 목록)
+const fetchCourseschedulesData = async (targetPage: number) => {
+  try {
+    const response = await axios.get(
+      `https://info7qni.dothome.co.kr/courseslist.php?page=${targetPage}&tab=schedule`
+    );
+    console.log("courseslist 응답 전체:", response.data);
+
+    // 공통 헬퍼 함수를 사용하여 데이터 정제
+    const responseData = parsePureJson(response.data);
+
+    if (responseData) {
+      // 데이터가 비어있을 경우를 대비해 안전하게 기본값 처리
+      const listData = responseData.data || responseData.schedules || [];
+      const totalPages = responseData.total_pages || responseData.totalPages || 1;
+
+      setHq_course_schedules(listData);
+      setScheduleTotalPages(totalPages);
+    }
+  } catch (error) {
+    console.error("교육 일정 정보를 가져오는데 실패했습니다:", error);
+  }
+};
+
+// 🟢 1번 탭 데이터용 감시자
+useEffect(() => {
+  fetchAcademyData(academyPage);
+}, [academyPage]); 
+
+// 🔵 2번 탭 데이터용 감시자
+useEffect(() => {
+  fetchCourseschedulesData(schedulePage);
+}, [schedulePage]);
+
+
+    // 🔍 1. 아카데미 상세 정보 조회 함수
+const detailAcademy = async (idx: number) => {
+  console.log("함수로 전달된 idx 값:", idx); 
 
   try {
-        // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-        const response = await axios.post('https://info7qni.dothome.co.kr/insertSchdule.php', {
-            course_name: course_name,
-            education_at: education_at,
-            instructor_name: instructor_name,
-            location: location,
-            current_count: current_count,
-            max_count: max_count
-        });
+    const response = await axios.post('https://info7qni.dothome.co.kr/detailacademy.php', {
+      idx: idx
+    });
+    console.log("detailacademy 응답 전체:", response.data);
 
-        if (response.data && response.data.success) {
-           
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
 
+    if (responseData) {
+      // 파싱된 데이터에서 자격증 및 이력 추출 (데이터가 없으면 빈 배열 처리)
+      const certData = responseData.certification || [];
+      const historyData = responseData.hq_course_history || [];
 
+      setCertification(certData);
+      setHq_course_history(historyData);
 
-            fetchCourseschedulesData(schedulePage);
-
-
-            setIsOpen(false);
-            alert(response.data.message);
-
-
-
-        } else {
-            alert(response.data.message || '등록에 실패했습니다.');
-        }
-    } catch (error) {
-        console.error("테이블 수정 실패:", error);
-        alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+      // success 검증 (문자열 및 불리언 조건 상호 호환)
+      if (responseData.success === true || responseData.success === "true") {
+        setSelectedEmpId(1);
+      }
     }
-}
+  } catch (error) {
+    console.error("아카데미 상세 정보 조회 실패:", error); // 로그 문구 수정
+    alert('서버 전송 중 오류가 발생했습니다.');
+  }
+};
+
+// 🔍 2. 아카데미 행 수정 저장 함수
+const saveRowEdit = async (index: number) => {
+  try {
+    // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
+    const response = await axios.post('https://info7qni.dothome.co.kr/updateAcademyRow.php', {
+      idx: editRowData.idx, 
+      branchName: editRowData.branchName,
+      position: editRowData.position,
+      courseName: editRowData.courseName,
+      status: editRowData.status,
+      issueDate: editRowData.issueDate
+    });
+    console.log("updateAcademyRow 응답 전체:", response.data);
+
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
+
+    if (responseData && (responseData.success === true || responseData.success === "true")) {
+      // 화면에 반영할 새 배열 복사본 만들기
+      const updated = [...academy];
+      updated[index] = { ...editRowData };
+
+      setAcademy(updated);
+      setEditRowIndex(null);
+      fetchAcademyData(academyPage);
+      alert('성공적으로 수정되었습니다.');
+    } else {
+      alert(responseData?.message || '수정에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error("테이블 수정 실패:", error);
+    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+  }
+};
+
+// 🔍 3. 교육 일정 행 수정 저장 함수
+const saveRowEdit2 = async (index: number) => {
+  try {
+    // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
+    const response = await axios.post('https://info7qni.dothome.co.kr/updateSchdule.php', {
+      id: index, // 파라미터로 안전하게 넘어온 진짜 고유 id값을 매핑
+      course_name: editRowData2.course_name,
+      education_at: editRowData2.education_at,
+      instructor_name: editRowData2.instructor_name,
+      location: editRowData2.location,
+      current_count: editRowData2.current_count,
+      max_count: editRowData2.max_count
+    });
+    console.log("updateSchdule 응답 전체:", response.data);
+
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
+
+    if (responseData && (responseData.success === true || responseData.success === "true")) {
+      // 화면에 반영할 새 배열 복사본 만들기
+      const updated = [...hq_course_schedules];
+      updated[index] = { ...editRowData2 };
+
+      // 리액트 상태 배열을 교체하여 즉각 화면 갱신
+      setHq_course_schedules(updated);
+      
+      // 인풋창 수정 모드 끄기
+      setEditRowIndex2(null);
+      fetchCourseschedulesData(schedulePage);
+
+      alert(responseData.message || '성공적으로 수정되었습니다.');
+    } else {
+      alert(responseData?.message || '수정에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error("테이블 수정 실패:", error);
+    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+  }
+};
+
+
+
+const onInsertData = async () => {
+  try {
+    // PHP 서버로 새 일정 데이터 전송
+    const response = await axios.post('https://info7qni.dothome.co.kr/insertSchdule.php', {
+      course_name: course_name,
+      education_at: education_at,
+      instructor_name: instructor_name,
+      location: location,
+      current_count: current_count,
+      max_count: max_count
+    });
+    console.log("insertSchdule 응답 전체:", response.data);
+
+    // 정규식 기반 헬퍼 함수로 데이터 정제 (불필요한 PHP 접두사 제거)
+    const responseData = parsePureJson(response.data);
+
+    // 응답 데이터의 success 여부 검증 (불리언 및 문자열 상호 호환)
+    if (responseData && (responseData.success === true || responseData.success === "true")) {
+      
+      // 목록 새로고침 및 모달 닫기
+      fetchCourseschedulesData(schedulePage);
+      setIsOpen(false);
+      
+      alert(responseData.message || '성공적으로 등록되었습니다.');
+    } else {
+      // 서버가 success: false를 반환했거나 파싱에 실패한 경우
+      alert(responseData?.message || '등록에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error("일정 등록 실패:", error); // 명확한 로그 문구로 수정
+    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+  }
+};
 
 
 

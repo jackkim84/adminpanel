@@ -1,0 +1,11 @@
+# 1. 브라우저로 리액트 자바스크립트 파일을 보낼 때 용량을 70% 이상 압축 전송
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json
+</IfModule>
+
+# 2. 메인 자바스크립트와 CSS를 사용자 브라우저에 캐싱하여 재방문 시 0초 진입 구현
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/css "access plus 1 month"
+</IfModule>

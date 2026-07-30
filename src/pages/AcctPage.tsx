@@ -47,6 +47,27 @@ export default function AcctPage() {
       const [total_nonreport, setTotal_nonreport] = useState<string>("");
       const [total_nonrows, setTotal_nonrows] = useState<string>("");
 
+// 1. 유효한 JSON 문자열만 추출하여 객체로 파싱하는 공통 헬퍼 함수
+const parsePureJson = (rawResponse: any) => {
+  let data = rawResponse;
+  if (typeof data === 'string') {
+    try {
+      // { 로 시작하는 부분부터 추출하여 파싱 시도
+      const jsonStartIndex = data.indexOf('{');
+      if (jsonStartIndex !== -1) {
+        const pureJsonString = data.substring(jsonStartIndex);
+        data = JSON.parse(pureJsonString);
+      } else {
+        console.error("올바른 JSON 형태를 찾을 수 없습니다.");
+      }
+    } catch (parseError) {
+      console.error("데이터 파싱 실패:", parseError);
+    }
+  }
+  return data;
+};
+
+
         // 1. 한국 시간(KST) 기준 오늘 날짜('YYYY-MM-DD')를 생성하여 초기값으로 입력
         const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
             .toISOString()
@@ -55,60 +76,70 @@ export default function AcctPage() {
         // 상태값 선언
         const [selectedDate, setSelectedDate] = useState(today); // 기본값이 오늘 날짜로 세팅됨!
 
-       const fetchDeposit_managementData = async (targetPage: number , targetDate: string) => {
-        try {
-            const response = await axios.get(
-                `https://info7qni.dothome.co.kr/deposit_management.php?page=${targetPage}&tab=billing&date=${targetDate}`
-            );
-            if (response.data) {
-            setDeposit_management(response.data.data);
-            // console.log(response.data.data);
-            setTotal_branch(response.data.total_rows);
-            setTotal_amount(response.data.total_amount);
-            setTotal_nonreport(response.data.non_report);
-            setTotal_nonrows(response.data.total_nonrows);
-            setDeposit_managementTotalPages(response.data.total_pages);
-            
+ // 🟢 1번 탭 데이터 전용 함수 (입금 관리)
+const fetchDeposit_managementData = async (targetPage: number, targetDate: string) => {
+  try {
+    const response = await axios.get(
+      `https://info7qni.dothome.co.kr/deposit_management.php?page=${targetPage}&tab=billing&date=${targetDate}`
+    );
+    console.log("deposit_management 응답 전체:", response.data);
 
-            console.log(response.data.total_rows);
-            console.log(response.data.total_amount);
-            console.log(response.data.non_report);
-            console.log(response.data.total_nonrows);
-            }
-        } catch (error) {
-            console.error("아카데미 정보를 가져오는데 실패했습니다:", error);
-        }
-      };
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
 
-
-            // 🔵 2번 탭 데이터 전용 함수
-      const fetchRefundData = async (targetPage: number) => {
-        try {
-          const response = await axios.get(
-              `https://info7qni.dothome.co.kr/refundlist.php?page=${targetPage}&tab=refund`
-          );
-
-          if (response.data) {
+    if (responseData) {
+      // 목록 데이터 안전하게 바인딩
+      setDeposit_management(responseData.data || []);
       
-            setRefundData(response.data.data);
-            setRefundTotalPages(response.data.total_pages);
-          }
-        } catch (error) {
-          console.error("교육 일정 정보를 가져오는데 실패했습니다:", error);
-        }
-      };
+      // 각종 통계 수치 및 페이지네이션 데이터 바인딩 (데이터 누락 시 기본값 0 또는 1 처리)
+      setTotal_branch(responseData.total_rows || 0);
+      setTotal_amount(responseData.total_amount || 0);
+      setTotal_nonreport(responseData.non_report || 0);
+      setTotal_nonrows(responseData.total_nonrows || 0);
+      setDeposit_managementTotalPages(responseData.total_pages || 1);
 
-      
+      console.log("정제된 통계 수치:", {
+        total_rows: responseData.total_rows,
+        total_amount: responseData.total_amount,
+        non_report: responseData.non_report,
+        total_nonrows: responseData.total_nonrows
+      });
+    }
+  } catch (error) {
+    console.error("입금 관리 정보를 가져오는데 실패했습니다:", error); // 로그 문구 수정
+  }
+};
 
-    useEffect(() => {
-        fetchDeposit_managementData(deposit_managementPage , selectedDate);
-    }, [deposit_managementPage , selectedDate]); 
+// 🔵 2번 탭 데이터 전용 함수 (환불 목록)
+const fetchRefundData = async (targetPage: number) => {
+  try {
+    const response = await axios.get(
+      `https://info7qni.dothome.co.kr/refundlist.php?page=${targetPage}&tab=refund`
+    );
+    console.log("refundlist 응답 전체:", response.data);
 
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
 
-     useEffect(() => {
-        fetchRefundData(refundPage);
-    }, [refundPage]); 
-    
+    if (responseData) {
+      setRefundData(responseData.data || []);
+      setRefundTotalPages(responseData.total_pages || 1);
+    }
+  } catch (error) {
+    console.error("환불 목록 정보를 가져오는데 실패했습니다:", error); // 로그 문구 수정
+  }
+};
+
+// 🟢 1번 탭 데이터용 감시자 (페이지 또는 선택 날짜 변경 시 호출)
+useEffect(() => {
+  fetchDeposit_managementData(deposit_managementPage, selectedDate);
+}, [deposit_managementPage, selectedDate]); 
+
+// 🔵 2번 탭 데이터용 감시자 (페이지 변경 시 호출)
+useEffect(() => {
+  fetchRefundData(refundPage);
+}, [refundPage]);
+
 
 
      // 1. 현재 수정 중인 줄(Row)의 인덱스 번호를 저장 (수정 중이 아니면 null)
@@ -124,92 +155,124 @@ export default function AcctPage() {
     };
 
 
-        // 4. [저장] 버튼 클릭 시 백엔드 DB 전송 및 실시간 화면 동기화 함수
-    const saveRowEdit = async (index: number) => {
-        try {
+  // 🔍 1. 입금 관리 행 수정 저장 함수
+const saveRowEdit = async (index: number) => {
+  try {
+    // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
+    const response = await axios.post('https://info7qni.dothome.co.kr/updateDepositRow.php', {
+      id: editRowData.id, 
+      branch_name: editRowData.branch_name,
+      deposit_date: editRowData.deposit_date,
+      manager_name: editRowData.manager_name,
+      depositor_name: editRowData.depositor_name,
+      deposit_amount: editRowData.deposit_amount,
+      status: editRowData.status
+    });
+    console.log("updateDepositRow 응답 전체:", response.data);
 
-            // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-            const response = await axios.post('https://info7qni.dothome.co.kr/updateDepositRow.php', {
-                id: editRowData.id, 
-                branch_name: editRowData.branch_name,
-                deposit_date: editRowData.deposit_date,
-                manager_name: editRowData.manager_name,
-                depositor_name: editRowData.depositor_name,
-                deposit_amount: editRowData.deposit_amount,
-                status: editRowData.status
-            });
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
+
+    if (responseData && (responseData.success === true || responseData.success === "true")) {
+      // 1. 화면에 반영할 새 배열 복사본 만들기
+      const updated = [...deposit_management];
+      updated[index] = { ...editRowData };
+
+      setDeposit_management(updated);
+      setEditRowIndex(null);
+      fetchDeposit_managementData(deposit_managementPage, selectedDate);
+      alert('성공적으로 수정되었습니다.');
+    } else {
+      alert(responseData?.message || '수정에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error("입금 내역 수정 실패:", error); // 명확한 로그 문구로 수정
+    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+  }
+};
+
+// 1. 현재 수정 중인 줄(Row)의 인덱스 번호를 저장 (수정 중이 아니면 null)
+const [editRowIndex2, setEditRowIndex2] = useState<number | null>(null);
+
+// 2. 수정 중인 한 줄의 데이터들을 담아둘 임시 버퍼 상태
+const [editRowData2, setEditRowData2] = useState<any>({});
+
+// 3. [수정] 버튼 클릭 시 해당 줄의 데이터를 버퍼에 담고 인풋창으로 전환하는 함수
+const startRowEdit2 = (index: number, currentItem: any) => {
+  setEditRowIndex2(index);
+  setEditRowData2({ ...currentItem }); 
+};
+
+// 🔍 2. 환불 목록 행 수정 저장 함수
+// 💡 파라미터에 index와 id를 모두 받아내도록 규격을 명시합니다.
+const saveRowEdit2 = async (index: number) => {
+  try {
+    // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
+    const response = await axios.post('https://info7qni.dothome.co.kr/updateRefund.php', {
+      id: index, // 파라미터로 안전하게 넘어온 진짜 고유 id값을 매핑
+      branch_name: editRowData2.branch_name, 
+      request_date: editRowData2.request_date,    
+      branch_manager: editRowData2.branch_manager,
+      customer_name: editRowData2.customer_name,    
+      refund_amount: editRowData2.refund_amount,  
+      reason_and_account: editRowData2.reason_and_account,   
+      approval_status: editRowData2.approval_status
+    });
+    console.log("updateRefund 응답 전체:", response.data);
+
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
+
+    if (responseData && (responseData.success === true || responseData.success === "true")) {
+      // 1. 화면에 반영할 새 배열 복사본 만들기
+      const updated = [...refundData];
+      updated[index] = { ...editRowData2 };
+
+      setRefundData(updated);
+      
+      // 3. 인풋창 수정 모드 끄기
+      setEditRowIndex2(null);
+      fetchRefundData(refundPage);
+
+      alert(responseData.message || '성공적으로 수정되었습니다.');
+    } else {
+      alert(responseData?.message || '수정에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error("환불 내역 수정 실패:", error); // 명확한 로그 문구로 수정
+    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+  }
+};
 
 
 
-            if (response.data && response.data.success) {
-                  // 1. 화면에 반영할 새 배열 복본 만들기
-                  const updated = [...deposit_management];
-                  updated[index] = { ...editRowData };
+const  onStatus = async (id : number) => {
+  try {
+    // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
+    const response = await axios.post('https://info7qni.dothome.co.kr/updateRefundStatus.php', {
+      id: id, 
+      approval_status: 'Y',       
+    });
+    console.log("updateCertificatefile 응답 전체:", response.data);
 
-                  setDeposit_management(updated);
-                  setEditRowIndex(null);
-                  fetchDeposit_managementData(deposit_managementPage, selectedDate);
-                  alert('성공적으로 수정되었습니다.');
+    // 정규식 기반 헬퍼 함수로 데이터 정제
+    const responseData = parsePureJson(response.data);
 
-              } else {
-                  alert(response.data.message || '수정에 실패했습니다.');
-              }
-        } catch (error) {
-            console.error("테이블 수정 실패:", error);
-            alert('서버 전송 중 네트워크 오류가 발생했습니다.');
-        }
-    };
+    if (responseData && (responseData.success === true || responseData.success === "true")) {
 
+      fetchRefundData(refundPage);
 
-               // 1. 현재 수정 중인 줄(Row)의 인덱스 번호를 저장 (수정 중이 아니면 null)
-        const [editRowIndex2, setEditRowIndex2] = useState<number | null>(null);
-    
-        // 2. 수정 중인 한 줄의 데이터들을 담아둘 임시 버퍼 상태
-        const [editRowData2, setEditRowData2] = useState<any>({});
-    
-        // 3. [수정] 버튼 클릭 시 해당 줄의 데이터를 버퍼에 담고 인풋창으로 전환하는 함수
-        const startRowEdit2 = (index: number, currentItem: any) => {
-              setEditRowIndex2(index);
-              setEditRowData2({ ...currentItem }); 
-        };
+      alert(responseData.message || '성공적으로 수정되었습니다.');
+    } else {
+      alert(responseData?.message || '수정에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error("자격증 파일 내역 수정 실패:", error); // 명확한 로그 문구로 수정
+    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
+  }
 
 
-        // 💡 파라미터에 index와 id를 모두 받아내도록 규격을 명시합니다.
-            const saveRowEdit2 = async (index: number) => {
-                try {
-                    // PHP 서버로 한 번에 한 줄 데이터 수정본 전송
-                    const response = await axios.post('https://info7qni.dothome.co.kr/updateRefund.php', {
-                        id: index, // 👈 파라미터로 안전하게 넘어온 진짜 고유 id값을 매핑합니다.
-                        branch_name: editRowData2.branch_name, 
-                        request_date: editRowData2.request_date,    
-                        branch_manager: editRowData2.branch_manager,
-                        customer_name: editRowData2.customer_name,    
-                        refund_amount: editRowData2.refund_amount,  
-                        reason_and_account: editRowData2.reason_and_account,   
-                        approval_status: editRowData2.approval_status
-                    });
-
-                    if (response.data && response.data.success) {
-                        // 1. 화면에 반영할 새 배열 복사본 만들기
-                        const updated = [...refundData];
-                        updated[index] = { ...editRowData2 };
-
-                        setRefundData(updated);
-                        
-                        // 3. 인풋창 수정 모드 끄기
-                        setEditRowIndex2(null);
-                        fetchRefundData(refundPage);
-
-                        alert(response.data.message);
-
-                    } else {
-                        alert(response.data.message || '수정에 실패했습니다.');
-                    }
-                } catch (error) {
-                    console.error("테이블 수정 실패:", error);
-                    alert('서버 전송 중 네트워크 오류가 발생했습니다.');
-                }
-            };
+}
 
 
       
@@ -557,7 +620,7 @@ export default function AcctPage() {
                                     {isApproved ? (
                                         <span>완료</span>
                                     ) : (
-                                        <button className="btn-sm" onClick={() => {/* 승인 처리 함수 */}}>지급 승인</button>
+                                        <button className="btn-sm" onClick={() => { onStatus(item.id)}}>지급 승인</button>
                                     )}
                                 </td>
 

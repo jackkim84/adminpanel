@@ -29,7 +29,7 @@ export default function NoticePage() {
 
   // 1. 공지사항 목록 조회 및 페이지네이션
   const fetchNotices = async (targetPage: number) => {
-    setIsLoading(true);
+
     try {
       const response = await axios.get(`https://info7qni.dothome.co.kr/board.php?page=${targetPage}`);
       
