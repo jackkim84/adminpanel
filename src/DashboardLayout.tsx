@@ -2,27 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
-
 interface UserData {
   name: string;
   role: string;
 }
-
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const currentPath = location.pathname;
-
-   const today = new Date();
-
-   const formattedDate = today.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'short',
-  });
+  const today = new Date();
 
   const handleLogout = () => {
     localStorage.clear();
@@ -30,19 +20,21 @@ export default function DashboardLayout() {
     navigate('/login');
   };
 
-  const [userInfo, setUserInfo] = useState<UserData>({
-    name: '-',
-    role: '본사 최고관리자'
+  // [최적화 1] 최초 접속 시 닷홈 통신을 대기하지 않습니다.
+  // 로그인 성공 시 세션에 저장해둔 유저 이름과 직급을 우선 꺼내와 0초 만에 화면에 채워줍니다.
+  const [userInfo, setUserInfo] = useState<UserData>(() => {
+    const savedName = localStorage.getItem('userName') || '-';
+    const savedRole = localStorage.getItem('userRole') || '본사 최고관리자';
+    return { name: savedName, role: savedRole };
   });
 
-
-  // 3. 페이지가 처음 켜질 때 PHP 서버에서 회원 정보 가져오기
+  // 페이지가 처음 켜질 때 PHP 서버에서 최신 회원 정보 동기화
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // 로그인 성공 시 저장해둔 토큰이 있다면 헤더에 실어 보냅니다.
         const token = localStorage.getItem('token');
         
+        // user2.php에서 user.php로 변경하신 주소 반영 완료
         const response = await axios.get('https://info7qni.dothome.co.kr/user.php', {
           headers: {
             Authorization: token ? `Bearer ${token}` : ''
@@ -66,12 +58,18 @@ export default function DashboardLayout() {
 
         console.log("정제된 회원 데이터 객체:", responseData);
 
-        // [데이터 반영] 검사 대상을 response.data에서 responseData로 변경
+        // [데이터 반영] 최신 값을 화면 state와 localStorage에 동시에 동기화합니다.
         if (responseData && responseData.name) {
           setUserInfo({
             name: responseData.name,
             role: responseData.role || '본사 최고관리자'
           });
+          
+          // 다음에 새로고침할 때 백엔드를 기다리지 않도록 로컬 저장소 갱신
+          localStorage.setItem('userName', responseData.name);
+          if (responseData.role) {
+            localStorage.setItem('userRole', responseData.role);
+          }
         } else {
           console.warn("회원 정보 데이터에 name 필드가 없습니다:", responseData);
         }
@@ -81,10 +79,8 @@ export default function DashboardLayout() {
     };
 
     fetchUserData();
-  }, []); // 빈 배열: 최초 렌더링 시 1회만 실행
+  }, []); // 최초 렌더링 시 1회만 비동기로 실행
 
-
-  
   return (
     <div id="appScreen">
       {/* ============ TOPBAR ============ */}
@@ -101,12 +97,14 @@ export default function DashboardLayout() {
           </div>
         </div>
         <div className="topbar-right">
-          <div className="topbar-date" id="topbarDate">{today.getFullYear()}년 {today.getMonth() + 1}월 {today.getDate()}일 ({today.toLocaleDateString('ko-KR', { weekday: 'short' })})</div>
+          <div className="topbar-date" id="topbarDate">
+            {today.getFullYear()}년 {today.getMonth() + 1}월 {today.getDate()}일 ({today.toLocaleDateString('ko-KR', { weekday: 'short' })})
+          </div>
           <button className="logout-btn" id="logoutBtn" onClick={handleLogout}>로그아웃</button>
         </div>
       </div>
 
-      {/* ============ TAB NAVIGATION (원본 HTML 태그 완전 동일 매핑) ============ */}
+      {/* ============ TAB NAVIGATION ============ */}
       <div className="tab-nav">
         <button 
           className={`tab-item ${currentPath.includes('/dashboard/notice') ? 'active' : ''}`} 
@@ -149,6 +147,7 @@ export default function DashboardLayout() {
 
       {/* ============ CONTENT AREA ============ */}
       <div className="content">
+        {/* [최적화 2] 데이터 병목과 무관하게 하위 서브 페이지의 컴포넌트 렌더링을 즉시 오픈합니다. */}
         <Outlet />
       </div>
     </div>
